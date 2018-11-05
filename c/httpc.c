@@ -39,6 +39,13 @@ uv_tcp_t    _server;
 uv_tcp_t    _client;
 const char* STATIC_PATH = NULL;
 
+typedef char* (*igr_res)(const char* request_header, const char* path_info, const char* payload); 
+
+igr_res res_get;
+igr_res res_post;
+
+char* request_get(char* head, char * path, char* query);
+char* request_post(char* head, char * path, char* payload);
 
 static void on_connection(uv_stream_t* server, int status);
 
@@ -266,23 +273,6 @@ static void send_file(uv_stream_t* client, const char* content_type, const char*
 	}
 }
 
-
-
-typedef char* (*igr_res)(const char* request_header, const char* path_info, const char* payload); 
-
-
-igr_res res_get;
-igr_res res_post;
-
-int igr_handle_request(igr_res response_get, igr_res response_post)
-{
-		res_get = response_get;
-		res_post = response_post;
-		return 1;
-}
-
-
-
 static void handle_get(uv_stream_t* client, const char* request_header, const char* path_info, const char* query_stirng) 
 {
 	char* postfix = strrchr(path_info, '.');
@@ -306,7 +296,7 @@ static void handle_get(uv_stream_t* client, const char* request_header, const ch
 	}
 	else
 	{
-		char* respone = res_get(request_header, path_info, query_stirng);
+		char* respone = request_get(request_header, path_info, query_stirng);
 		if(*respone == ' ')
 		{
 			if(STATIC_PATH) 
@@ -337,7 +327,7 @@ static void handle_get(uv_stream_t* client, const char* request_header, const ch
 
 static void handle_post(uv_stream_t* client, const char* request_header, const char* path_info, const char* payload) 
 {
-	char* respone = res_post(request_header, path_info, payload);
+	char* respone = request_post(request_header, path_info, payload);
 		
 	if(*respone == ' ')
 	{
@@ -599,5 +589,29 @@ char* igr_path_parser(char* path, int i)
 	return begin;
 }
 
+char* request_get(char* head, char * path, char* query)
+{
+        char* context = "text/html";
+        char* cookie = "";
+
+        return igr_response(200, context, cookie, query);
+}
+
+char* request_post(char* head, char * path, char* payload)
+{
+        char* context = "text/html";
+        char* cookie = "";
+
+        return igr_response(200, context, cookie, payload);
+}
 
 
+
+int main(void)
+{
+        char* static_path = "/static/path/";
+        char* ip = "0.0.0.0";
+
+        igr_init(static_path, ip, 8080);
+        return 0;
+}
